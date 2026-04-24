@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Performance Dashboard</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            color: white;
+        }
+
+        h1 {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 15px;
+            width: 320px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 8px;
+            border: none;
+            outline: none;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        .predict { background: #22c55e; }
+        .classify { background: #3b82f6; }
+        .cluster { background: #f59e0b; }
+
+        .output {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 10px;
+            background: #0f172a;
+            text-align: center;
+        }
+
+        .badge {
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .pass { background: #22c55e; }
+        .fail { background: #ef4444; }
+
+        img {
+            width: 100%;
+            margin-top: 15px;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>📊 Student Performance Dashboard</h1>
+
+<div class="container">
+
+    <!-- INPUT CARD -->
+    <div class="card">
+        <h3>Input Data</h3>
+
+        <input id="studytime" placeholder="Study Time">
+        <input id="failures" placeholder="Failures">
+        <input id="absences" placeholder="Absences">
+        <input id="G1" placeholder="G1">
+        <input id="G2" placeholder="G2">
+
+        <button class="predict" onclick="predict()">Predict Score</button>
+        <button class="classify" onclick="classify()">Check Pass/Fail</button>
+        <button class="cluster" onclick="cluster()">Analyze Cluster</button>
+    </div>
+
+    <!-- OUTPUT CARD -->
+    <div class="card">
+        <h3>Results</h3>
+
+        <div class="output" id="score">Score: -</div>
+        <div class="output" id="status">Status: -</div>
+        <div class="output" id="clusterResult">Cluster: -</div>
+
+        <img id="plot" />
+    </div>
+
+</div>
+
+<script>
+function getData() {
+    return {
+        studytime: parseInt(document.getElementById("studytime").value),
+        failures: parseInt(document.getElementById("failures").value),
+        absences: parseInt(document.getElementById("absences").value),
+        G1: parseInt(document.getElementById("G1").value),
+        G2: parseInt(document.getElementById("G2").value)
+    };
+}
+
+async function predict() {
+    const res = await fetch("http://127.0.0.1:8000/predict", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(getData())
+    });
+
+    const data = await res.json();
+    document.getElementById("score").innerText =
+        "Predicted Score: " + data.predicted_score;
+}
+
+async function classify() {
+    const res = await fetch("http://127.0.0.1:8000/classify", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(getData())
+    });
+
+    const data = await res.json();
+
+    let status = data.pass ? "PASS" : "FAIL";
+    let color = data.pass ? "pass" : "fail";
+
+    document.getElementById("status").innerHTML =
+        `Status: <span class="badge ${color}">${status}</span>`;
+}
+
+async function cluster() {
+    const res = await fetch("http://127.0.0.1:8000/cluster", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(getData())
+    });
+
+    const data = await res.json();
+
+    document.getElementById("clusterResult").innerText =
+        "Cluster: " + data.label;
+
+        loadPlot();
+}
+
+// Load plot
+async function loadPlot() {
+    const res = await fetch("http://127.0.0.1:8000/cluster-plot", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(getData())
+    });
+
+    const blob = await res.blob();
+    document.getElementById("plot").src = URL.createObjectURL(blob);
+}
+</script>
+
+</body>
+</html>
